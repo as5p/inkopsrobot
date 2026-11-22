@@ -92,4 +92,40 @@
 })();
 </script>
 
+
+<script>
+/* Inform the embedding Nyehandel page whenever content height changes. */
+(function () {
+  var lastHeight = 0;
+  var scheduled = false;
+  function sendHeight() {
+    scheduled = false;
+    var root = document.getElementById('bw-deal-overlay');
+    var height = root ? Math.ceil(root.getBoundingClientRect().bottom - document.body.getBoundingClientRect().top) : 0;
+    height = Math.max(height, document.documentElement.scrollHeight, document.body.scrollHeight);
+    if (!height || Math.abs(height - lastHeight) < 2) return;
+    lastHeight = height;
+    window.parent.postMessage({type:'tershine-deal-finder-height', height:height}, '*');
+  }
+  function schedule() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(sendHeight);
+  }
+  if (window.ResizeObserver) {
+    var observer = new ResizeObserver(schedule);
+    observer.observe(document.body);
+    var root = document.getElementById('bw-deal-overlay');
+    if (root) observer.observe(root);
+  }
+  window.addEventListener('load', schedule);
+  window.addEventListener('resize', schedule);
+  document.addEventListener('click', function(){ setTimeout(schedule, 0); setTimeout(schedule, 350); });
+  document.addEventListener('input', schedule);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  schedule();
+  setTimeout(schedule, 250);
+  setTimeout(schedule, 1000);
+})();
+</script>
 </body></html>
