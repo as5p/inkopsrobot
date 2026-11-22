@@ -1,6 +1,6 @@
 <!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tershine Budget Game Plan</title></head><body style="margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;"><!-- DEAL FINDER INLINE: all styling inline for Nyehandel -->
 <div id="bw-deal-overlay" style="display:block;background:#000;padding:18px 12px 42px;box-sizing:border-box;scroll-margin-top:16px;">
- <div id="bw-deal-dialog" aria-labelledby="bw-deal-title" style="position:relative;background:linear-gradient(160deg,#281329 0%,#110d17 45%,#09090d 100%);color:#fff;border:1px solid #63304f;border-radius:14px;max-width:780px;width:100%;margin:3vh auto 5vh;padding:clamp(18px,4vw,32px);box-sizing:border-box;box-shadow:0 25px 95px #000;font-family:Arial,Helvetica,sans-serif;">
+ <div id="bw-deal-dialog" aria-labelledby="bw-deal-title" style="position:relative;background:linear-gradient(160deg,#281329 0%,#110d17 45%,#09090d 100%);color:#fff;border:1px solid #63304f;border-radius:14px;max-width:780px;width:100%;margin:20px auto 24px;padding:clamp(18px,4vw,32px);box-sizing:border-box;box-shadow:0 25px 95px #000;font-family:Arial,Helvetica,sans-serif;">
   <h2 id="bw-deal-title" style="font-size:clamp(29px,6vw,48px);font-weight:900;line-height:1.1;letter-spacing:-1px;margin:0 0 8px;color:white;">BUDGET <span style="color:#ff0066">GAME PLAN</span></h2>
   <p style="font-size:13px;color:#c9becb;line-height:1.6;margin:0 0 24px;">Sätt din budget. Vi kombinerar Black Week-paket och produkter för att hitta riktigt bra deals.</p>
   <label for="bw-deal-budget" style="display:block;font-size:12px;font-weight:900;letter-spacing:.5px;margin-bottom:8px;">DIN BUDGET (KR)</label>
@@ -54,6 +54,10 @@
    if(p.tags.indexOf('exterior')>=0&&MICROFIBER_CARE.test(p.name)&&p.tags.indexOf('microfiber')<0)p.tags.push('microfiber');
    return p;
  }).filter(function(p){return p.tags.length>0});
+ // Do not pad a recommendation with cheap spare parts or incidental accessories.
+ // Unspent budget is preferable to an unrelated filler item.
+ var FILLER_ACCESSORY=/flödesmunstycke|adapter till foam|extra behållare|spraymunstycke|doseringsmått|tappkran|tomflaska|reservdel|munstycke till|påfyllningsflaska|vaxapplikator|^applikator$|^doftgranar$|^doftgranar|^grit guard$/i;
+ function isFiller(p){return !!p.single&&(p.price<75||FILLER_ACCESSORY.test(p.name));}
  var ALL=PACKAGES.concat(SINGLES);
  var selected='deals',initialized=false,previousFocus=null;
  function el(id){return document.getElementById(id)}
@@ -87,7 +91,7 @@
   }
   return false;
  }
- function candidatePool(budget){var a=ALL.filter(function(p){return p.price<=budget&&(selected==='deals'||selected==='alla'||p.tags.indexOf(selected)>=0)});if(selected==='deals')a.sort(function(x,y){return (y.regular-y.price)/y.price-(x.regular-x.price)/x.price});return a}
+ function candidatePool(budget){var a=ALL.filter(function(p){return p.price<=budget&&!isFiller(p)&&(selected==='deals'||selected==='alla'||p.tags.indexOf(selected)>=0)});if(selected==='deals')a.sort(function(x,y){return (y.regular-y.price)/y.price-(x.regular-x.price)/x.price});return a}
  function evaluate(list,mode){var cost=0,regular=0,dup=0,cats={};for(var i=0;i<list.length;i++){var p=list[i];cost+=p.price;regular+=p.regular;dup+=overlap(p,list.slice(0,i));p.tags.forEach(function(t){cats[t]=1})}var savings=regular-cost,div=Object.keys(cats).length;var penalty=dup*90;var value=mode==='savings'?savings*1.7+cost*.03:mode==='variety'?div*140+list.length*12+savings*.4:regular*.7+savings*.5+div*30;return {cost:cost,regular:regular,saving:savings,dup:dup,score:value-penalty-list.length*4}}
  function find(budget,mode){var pool=candidatePool(budget);if(!pool.length)return null;
   // Beam search keeps diverse partial baskets and rejects exact duplicate SKU picks.
@@ -136,11 +140,12 @@
   function sendHeight() {
     scheduled = false;
     var root = document.getElementById('bw-deal-overlay');
-    var height = root ? Math.ceil(root.getBoundingClientRect().bottom - document.body.getBoundingClientRect().top) : 0;
-    height = Math.max(height, document.documentElement.scrollHeight, document.body.scrollHeight);
+    var height = root ? Math.ceil(root.offsetHeight) : 0;
+    // Measure content only. scrollHeight includes iframe viewport and causes an endless resize loop.
+    height += 2;
     if (!height || Math.abs(height - lastHeight) < 2) return;
     lastHeight = height;
-    window.parent.postMessage({type:'tershine-deal-finder-height', height:height}, '*');
+    if (window.parent !== window) window.parent.postMessage({type:'tershine-deal-finder-height', height:height}, '*');
   }
   function schedule() {
     if (scheduled) return;
