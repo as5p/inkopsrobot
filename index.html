@@ -84,7 +84,8 @@
    html+='</section>';
   }
   out.innerHTML=any?html:'<div style="padding:16px;background:#251727;border-radius:8px;">Inga matchande produkter inom budgeten. Testa en högre budget eller en annan kategori.</div>';
-  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+  // Do not scroll the iframe viewport: the parent page owns vertical scrolling.
+  if (window.parent !== window) window.parent.postMessage({type:'tershine-deal-finder-results'}, '*');
  }
  function init(){if(initialized||!el('bw-deal-go')||!el('bw-deal-overlay'))return false;initialized=true;mark();
   el('bw-deal-budgets').addEventListener('click',function(e){var b=e.target.closest('[data-budget]');if(b){el('bw-deal-budget').value=b.getAttribute('data-budget');mark()}});el('bw-deal-budget').addEventListener('input',mark);el('bw-deal-interests').addEventListener('click',function(e){var b=e.target.closest('[data-interest]');if(b){selected=b.getAttribute('data-interest');mark()}});el('bw-deal-go').addEventListener('click',render);mark();return true}
